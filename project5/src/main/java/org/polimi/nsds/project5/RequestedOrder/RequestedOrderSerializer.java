@@ -19,7 +19,7 @@ public class RequestedOrderSerializer implements Serializer<RequestedOrder> {
             }
             return SerializationUtils.serialize(data);
         } catch (Exception e) {
-            throw new SerializationException("Error when serializing MessageDto to byte[]");
+            throw new SerializationException("Error when serializing RequestedOrder to byte[]");
         }
     }
 
