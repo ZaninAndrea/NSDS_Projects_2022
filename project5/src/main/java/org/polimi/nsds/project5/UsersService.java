@@ -1,13 +1,5 @@
 package org.polimi.nsds.project5;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.InetSocketAddress;
-import java.util.Properties;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -16,34 +8,43 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.polimi.nsds.project5.Order.OrderSerializer;
 import org.polimi.nsds.project5.Order.Order;
+import org.polimi.nsds.project5.Order.OrderSerializer;
+import org.polimi.nsds.project5.User.User;
+import org.polimi.nsds.project5.User.UserSerializer;
 
-public class OrdersService {
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.util.Properties;
+import java.util.UUID;
+import java.util.concurrent.Future;
+
+public class UsersService {
     private static final String kafkaBootstrapServers = "localhost:9092";
 
-    private static KafkaProducer<String, Order> setupProducer(){
+    private static KafkaProducer<String, User> setupProducer(){
         final Properties props = new Properties();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, OrderSerializer.class.getName());
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, UserSerializer.class.getName());
 
-        final KafkaProducer<String, Order> producer = new KafkaProducer<>(props);
+        final KafkaProducer<String, User> producer = new KafkaProducer<>(props);
         return producer;
     }
 
     public static void main(String[] args) throws Exception{
-        final KafkaProducer<String, Order> producer = setupProducer();
+        final KafkaProducer<String, User> producer = setupProducer();
 
         // Starts an http server to listen for order requests
-        HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
-        server.createContext("/orders", new OrderHandler(producer));
+        HttpServer server = HttpServer.create(new InetSocketAddress(8001), 0);
+        server.createContext("/users", new UserHandler(producer));
         server.setExecutor(null);
         server.start();
     }
-    static class OrderHandler implements HttpHandler {
-        private KafkaProducer<String, Order> producer;
-        public OrderHandler(KafkaProducer<String, Order> producer){
+    static class UserHandler implements HttpHandler {
+        private KafkaProducer<String, User> producer;
+        public UserHandler(KafkaProducer<String, User> producer){
             this.producer = producer;
         }
         @Override
@@ -61,12 +62,20 @@ public class OrdersService {
 
             // Parse body of the request
             String body = new String(t.getRequestBody().readAllBytes());
-            String[] items = body.split("\n");
+            String[] lines = body.split("\n");
+
+            if(lines.length != 3) {
+                String response = "The body should have 3 lines containing email, name and address of the user";
+                t.sendResponseHeaders(400, response.length());
+                OutputStream os = t.getResponseBody();
+                os.write(response.getBytes());
+                os.close();
+                return;
+            }
 
             // Generate new order message
-            final Order order = new Order(System.currentTimeMillis(), items, Order.Status.REQUESTED);
-            UUID uuid = UUID.randomUUID();
-            final ProducerRecord<String, Order> record = new ProducerRecord<>(Order.topic, uuid.toString(), order);
+            final User user = new User(lines[1], lines[2]);
+            final ProducerRecord<String, User> record = new ProducerRecord<>(User.topic, lines[0], user);
 
             // Send message to Kafka and waits for acknowledgement
             try{
@@ -76,7 +85,7 @@ public class OrdersService {
                 e.printStackTrace();
 
                 // Sends a failure HTTP response
-                String response = "Failed to submit order";
+                String response = "Failed to submit user";
                 t.sendResponseHeaders(500, response.length());
                 OutputStream os = t.getResponseBody();
                 os.write(response.getBytes());
