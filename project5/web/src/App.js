@@ -1,9 +1,14 @@
 import "./App.css"
-import { MantineProvider } from "@mantine/core"
-import { Button } from "@mantine/core"
-import { AppShell, Navbar, Header } from "@mantine/core"
 import { IconBoxSeam, IconUser, IconCheckupList } from "@tabler/icons"
-import { ThemeIcon, UnstyledButton, Group, Text } from "@mantine/core"
+import {
+    ThemeIcon,
+    UnstyledButton,
+    Group,
+    Text,
+    Box,
+    Header,
+    MantineProvider,
+} from "@mantine/core"
 import React, { useState } from "react"
 import CustomerView from "./CustomerView"
 import AdminView from "./AdminView"
@@ -14,7 +19,6 @@ function MainLink({ icon, color, label, selected, onClick }) {
         <UnstyledButton
             sx={(theme) => ({
                 display: "block",
-                width: "100%",
                 padding: theme.spacing.xs,
                 borderRadius: theme.radius.sm,
                 color: theme.black,
@@ -55,52 +59,43 @@ function App() {
 
     return (
         <MantineProvider withGlobalStyles withNormalizeCSS>
-            <AppShell
-                padding="md"
-                navbar={
-                    <Navbar width={{ base: 300 }} p="xs">
-                        <MainLink
-                            icon={<IconUser size={16} />}
-                            color="green"
-                            label="Customer"
-                            key="customer"
-                            selected={view === "customer"}
-                            onClick={() => setView("customer")}
-                        />
-                        <MainLink
-                            icon={<IconCheckupList size={16} />}
-                            color="blue"
-                            label="Admin"
-                            key="admin"
-                            selected={view === "admin"}
-                            onClick={() => setView("admin")}
-                        />
-                        <MainLink
-                            icon={<IconBoxSeam size={16} />}
-                            color="orange"
-                            label="Delivery"
-                            key="delivery"
-                            selected={view === "delivery"}
-                            onClick={() => setView("delivery")}
-                        />
-                    </Navbar>
-                }
-                header={
-                    <Header height={60} p="xs">
-                        Poli Eat
-                    </Header>
-                }
-                styles={(theme) => ({
-                    main: {
-                        backgroundColor:
-                            theme.colorScheme === "dark"
-                                ? theme.colors.dark[8]
-                                : theme.colors.gray[0],
-                    },
+            <Header p="xs">
+                <Group position="center">
+                    <MainLink
+                        icon={<IconUser size={16} />}
+                        color="green"
+                        label="Customer"
+                        key="customer"
+                        selected={view === "customer"}
+                        onClick={() => setView("customer")}
+                    />
+                    <MainLink
+                        icon={<IconCheckupList size={16} />}
+                        color="blue"
+                        label="Admin"
+                        key="admin"
+                        selected={view === "admin"}
+                        onClick={() => setView("admin")}
+                    />
+                    <MainLink
+                        icon={<IconBoxSeam size={16} />}
+                        color="orange"
+                        label="Delivery"
+                        key="delivery"
+                        selected={view === "delivery"}
+                        onClick={() => setView("delivery")}
+                    />
+                </Group>
+            </Header>
+            <Box
+                sx={(theme) => ({
+                    background: theme.colors.gray[0],
+                    paddingTop: "16px",
+                    height: "calc(100vh - 87px)",
                 })}
             >
                 {mainBody}
-            </AppShell>
+            </Box>
         </MantineProvider>
     )
 }

@@ -5,8 +5,12 @@ import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.polimi.nsds.project5.Item.Item;
+import org.polimi.nsds.project5.Order.Order;
+import org.polimi.nsds.project5.User.User;
 
 import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Properties;
 
 public class TopicManager {
@@ -21,8 +25,12 @@ public class TopicManager {
         props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers);
         AdminClient adminClient = AdminClient.create(props);
 
-        NewTopic newTopic = new NewTopic(Item.topic, topicPartitions, replicationFactor);
-        CreateTopicsResult createResult = adminClient.createTopics(Collections.singletonList(newTopic));
+        LinkedList<NewTopic> topics = new LinkedList<>();
+        topics.add(new NewTopic(Item.topic, topicPartitions, replicationFactor));
+        topics.add(new NewTopic(Order.topic, topicPartitions, replicationFactor));
+        topics.add(new NewTopic(User.topic, topicPartitions, replicationFactor));
+
+        CreateTopicsResult createResult = adminClient.createTopics(topics);
         createResult.all().get();
     }
 }

@@ -17,13 +17,14 @@ import org.polimi.nsds.project5.Order.OrderSerializer;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 class CacheManager implements Runnable
 {
-    HashMap<String, Item> cache;
+    ConcurrentHashMap<String, Item> cache;
     KafkaConsumer<String, Item> consumer;
 
-    public CacheManager(HashMap<String, Item> cache, KafkaConsumer<String, Item> consumer){
+    public CacheManager(ConcurrentHashMap<String, Item> cache, KafkaConsumer<String, Item> consumer){
         this.cache = cache;
         this.consumer = consumer;
     }
@@ -113,7 +114,7 @@ public class ValidationService {
         KafkaConsumer<String, Item> itemsConsumer = setupItemsConsumer(id);
         KafkaProducer<String, Order> producer = setupShippingProducer(id);
 
-        HashMap<String, Item> cache = new HashMap<>();
+        ConcurrentHashMap<String, Item> cache = new ConcurrentHashMap<>();
 
         // Run cache updating in a background thread
         CacheManager manager = new CacheManager(cache, itemsConsumer);

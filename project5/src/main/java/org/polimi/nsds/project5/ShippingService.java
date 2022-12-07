@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
 public class ShippingService {
@@ -66,7 +67,7 @@ public class ShippingService {
         final KafkaProducer<String, Order> producer = setupProducer();
         // TODO: get the group if from the env
         final KafkaConsumer<String, Order> consumer =  setupConsumer("shipping-consumer");
-        HashMap<String, Order> cache = new HashMap<String, Order>();
+        ConcurrentHashMap<String, Order> cache = new ConcurrentHashMap<String, Order>();
 
         // Starts an http server to listen for order requests
         HttpServer server = HttpServer.create(new InetSocketAddress(8002), 0);
@@ -96,16 +97,24 @@ public class ShippingService {
     }
     static class DeliveriesHandler implements HttpHandler {
         private KafkaProducer<String, Order> producer;
-        private         HashMap<String, Order> cache;
-        public DeliveriesHandler(KafkaProducer<String, Order> producer, HashMap<String, Order> cache){
+        private         ConcurrentHashMap<String, Order> cache;
+        public DeliveriesHandler(KafkaProducer<String, Order> producer, ConcurrentHashMap<String, Order> cache){
             this.producer = producer;
             this.cache = cache;
         }
         @Override
         public void handle(HttpExchange t) throws IOException {
-            // Check that the request is a POST request
+            // Check that the request is a POST request or an OPTIONS request for CORS
             String method = t.getRequestMethod();
-            if(!method.equals("POST")){
+
+            t.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+            if(method.equals("OPTIONS")){
+                t.getResponseHeaders().add("Access-Control-Allow-Methods", "POST");
+                t.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type,Authorization");
+                t.sendResponseHeaders(204, -1);
+                return;
+            }
+            else if(!method.equals("POST")){
                 String response = "Unsupported method";
                 t.sendResponseHeaders(400, response.length());
                 OutputStream os = t.getResponseBody();
@@ -160,15 +169,22 @@ public class ShippingService {
     }
 
     static class OrdersHandler implements HttpHandler {
-        private         HashMap<String, Order> cache;
-        public OrdersHandler(HashMap<String, Order> cache){
+        private         ConcurrentHashMap<String, Order> cache;
+        public OrdersHandler(ConcurrentHashMap<String, Order> cache){
             this.cache = cache;
         }
         @Override
         public void handle(HttpExchange t) throws IOException {
-            // Check that the request is a POST request
+            // Check that the request is a GET or OPTIONS request
             String method = t.getRequestMethod();
-            if(!method.equals("GET")){
+            t.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+            if(method.equals("OPTIONS")){
+                t.getResponseHeaders().add("Access-Control-Allow-Methods", "GET");
+                t.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type,Authorization");
+                t.sendResponseHeaders(204, -1);
+                return;
+            }
+            else if(!method.equals("GET")){
                 String response = "Unsupported method";
                 t.sendResponseHeaders(400, response.length());
                 OutputStream os = t.getResponseBody();

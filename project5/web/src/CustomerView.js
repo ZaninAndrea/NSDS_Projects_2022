@@ -17,6 +17,7 @@ const statusColor = {
     REQUESTED: "yellow",
     VALIDATED: "green",
     DELIVERED: "blue",
+    INVALID: "red",
 }
 
 function Order({ data }) {
@@ -65,17 +66,30 @@ function MainLink({ label, selected, onClick }) {
 class CustomerView extends React.Component {
     state = {
         orders: [],
-        items: ["penna", "scotch", "matita", "gomma", "bloc notes", "quaderno"],
+        items: [],
         basket: [],
     }
 
     componentDidMount() {
+        this.getItems()
         this.updateOrders()
         this.fetchInterval = setInterval(this.updateOrders, 5000)
     }
 
     componentWillUnmount() {
         clearInterval(this.fetchInterval)
+    }
+
+    getItems = async () => {
+        const res = await fetch("http://localhost:8003/items").then((res) =>
+            res.json()
+        )
+        this.setState({
+            items: res
+                .map((i) => Object.values(i)[0])
+                .filter((i) => i.available === true)
+                .map((i) => i.name),
+        })
     }
 
     updateOrders = async () => {
@@ -100,11 +114,19 @@ class CustomerView extends React.Component {
     render() {
         return (
             <>
-                <Grid sx={() => ({ height: "calc(100vh - 76px)" })}>
+                <Grid
+                    sx={() => ({
+                        height: "calc(100vh - 110px)",
+                    })}
+                >
                     <Grid.Col
                         span="auto"
                         shrink={1}
-                        sx={() => ({ maxWidth: "300px", height: "100%" })}
+                        sx={() => ({
+                            maxWidth: "300px",
+                            height: "calc(100% - 16px)",
+                            margin: "0",
+                        })}
                     >
                         <Card
                             style={{
@@ -172,6 +194,7 @@ class CustomerView extends React.Component {
                         style={{
                             height: "calc(100% - 16px)",
                             overflow: "auto",
+                            margin: "0",
                         }}
                     >
                         <Stack

@@ -26,6 +26,7 @@ import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
 public class ItemsService {
@@ -65,7 +66,7 @@ public class ItemsService {
         // TODO: get the group if from the env
         final KafkaConsumer<String, Item> consumer = setupConsumer("item-consumer");
 
-        HashMap<String, Item> cache = new HashMap<>();
+        ConcurrentHashMap<String, Item> cache = new ConcurrentHashMap<>();
 
         // Starts an http server to listen for order requests
         HttpServer server = HttpServer.create(new InetSocketAddress(8003), 0);
@@ -94,9 +95,9 @@ public class ItemsService {
 
     static class ItemHandler implements HttpHandler {
         private KafkaProducer<String, Item> producer;
-        private HashMap<String, Item> cache;
+        private ConcurrentHashMap<String, Item> cache;
 
-        public ItemHandler(KafkaProducer<String, Item> producer, HashMap<String, Item> cache) {
+        public ItemHandler(KafkaProducer<String, Item> producer, ConcurrentHashMap<String, Item> cache) {
             this.producer = producer;
             this.cache = cache;
         }
@@ -114,7 +115,7 @@ public class ItemsService {
             } else if (method.equals("DELETE")) {
                 handleDelete(t);
             } else if (method.equals("OPTIONS")) {
-                t.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, POST");
+                t.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, POST, DELETE");
                 t.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type,Authorization");
                 t.sendResponseHeaders(204, -1);
                 return;
