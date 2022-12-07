@@ -5,8 +5,11 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.cache.Cache;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.polimi.nsds.project5.Item.Item;
+import org.polimi.nsds.project5.Item.ItemDeserializer;
 import org.polimi.nsds.project5.Order.Order;
 import org.polimi.nsds.project5.Order.OrderDeserializer;
 import org.polimi.nsds.project5.Order.OrderSerializer;
@@ -14,6 +17,39 @@ import org.polimi.nsds.project5.Order.OrderSerializer;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+
+class CacheManager implements Runnable
+{
+    HashMap<String, Item> cache;
+    KafkaConsumer<String, Item> consumer;
+
+    public CacheManager(HashMap<String, Item> cache, KafkaConsumer<String, Item> consumer){
+        this.cache = cache;
+        this.consumer = consumer;
+    }
+    public void run()
+    {
+        System.out.println("Listening for updates on a background thread");
+
+        // Listen on the orders topic to keep an updated cache of the validated orders
+        while (true) {
+            final ConsumerRecords<String, Item> records = consumer.poll(Duration.of(5, ChronoUnit.MINUTES));
+
+            for (final ConsumerRecord<String, Item> record : records) {
+                String key = record.key();
+                Item item = record.value();
+
+                if(item.removed || !item.available){
+                    System.out.println("Removed item "+item.name);
+                    cache.remove(key);
+                }else{
+                    System.out.println("Cached item "+item.name);
+                    cache.put(key, item);
+                }
+            }
+        }
+    }
+}
 
 public class ValidationService {
     private static final String groupId = "validation-service";
@@ -38,6 +74,25 @@ public class ValidationService {
         return consumer;
     }
 
+    private static KafkaConsumer<String, Item> setupItemsConsumer(String groupId) {
+        final Properties props = new Properties();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId); // consumer group id
+
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ItemDeserializer.class.getName());
+        props.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
+
+        // The consumer doesn't commit the offsets, because at each startup it must rebuild the cache
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+        KafkaConsumer<String, Item> consumer = new KafkaConsumer<>(props);
+        consumer.subscribe(Collections.singletonList(Item.topic));
+
+        return consumer;
+    }
+
     private static KafkaProducer<String, Order> setupShippingProducer(String transactionalId){
         final Properties producerProps = new Properties();
         producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers);
@@ -53,10 +108,19 @@ public class ValidationService {
     }
 
     public static void main(String[] args) {
-        String transactionalId = "validation-service"; // TODO: get from environment
+        String id = "validation-service"; // TODO: get from environment
         KafkaConsumer<String, Order> consumer = setupOrdersConsumer();
-        KafkaProducer<String, Order> producer = setupShippingProducer(transactionalId);
+        KafkaConsumer<String, Item> itemsConsumer = setupItemsConsumer(id);
+        KafkaProducer<String, Order> producer = setupShippingProducer(id);
 
+        HashMap<String, Item> cache = new HashMap<>();
+
+        // Run cache updating in a background thread
+        CacheManager manager = new CacheManager(cache, itemsConsumer);
+        Thread t1 =new Thread(manager);
+        t1.start();
+
+        // Listen for requested orders and validate them
         while (true) {
             final ConsumerRecords<String, Order> records = consumer.poll(Duration.of(5, ChronoUnit.MINUTES));
 
@@ -71,9 +135,19 @@ public class ValidationService {
                 );
 
                 if(order.status == Order.Status.REQUESTED){
-                    // TODO: validate order
+                    boolean valid = true;
+                    for(String item : order.items){
+                        if(!cache.containsKey(item)){
+                            valid = false;
+                            break;
+                        }
+                    }
 
-                    order.setStatus(Order.Status.VALIDATED);
+                    if(valid){
+                        order.setStatus(Order.Status.VALIDATED);
+                    }else{
+                        order.setStatus(Order.Status.INVALID);
+                    }
                     producer.send(new ProducerRecord<>(Order.topic, record.key(), order));
                 }
             }

@@ -74,7 +74,7 @@ public class ItemsService {
         server.start();
         System.out.println("Server listening");
 
-        // Listen on the orders topic to keep an updated cache of the validated orders
+        // Listen on the items topic to keep an updated cache
         while (true) {
             final ConsumerRecords<String, Item> records = consumer.poll(Duration.of(5, ChronoUnit.MINUTES));
 

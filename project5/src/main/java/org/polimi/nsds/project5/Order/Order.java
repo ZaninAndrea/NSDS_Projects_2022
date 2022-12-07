@@ -10,7 +10,8 @@ public class Order implements java.io.Serializable {
     public enum Status{
         REQUESTED,
         VALIDATED,
-        DELIVERED
+        DELIVERED,
+        INVALID
     }
 
     public Status status;
