@@ -51,7 +51,14 @@ public class UsersService {
         public void handle(HttpExchange t) throws IOException {
             // Check that the request is a POST request
             String method = t.getRequestMethod();
-            if(!method.equals("POST")){
+            System.out.println(method);
+            if (method.equals("OPTIONS")) {
+                t.getResponseHeaders().add("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+                t.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+                t.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type,Authorization");
+                t.sendResponseHeaders(204, -1);
+                return;
+            } else if(!method.equals("POST")){
                 String response = "Unsupported method";
                 t.sendResponseHeaders(400, response.length());
                 OutputStream os = t.getResponseBody();
@@ -59,6 +66,10 @@ public class UsersService {
                 os.close();
                 return;
             }
+
+            t.getResponseHeaders().add("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+            t.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+            t.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type,Authorization");
 
             // Parse body of the request
             String body = new String(t.getRequestBody().readAllBytes());
@@ -96,7 +107,7 @@ public class UsersService {
 
 
             // Sends a successful HTTP response
-            String response = "";
+            String response = "ok";
             t.sendResponseHeaders(200, response.length());
             OutputStream os = t.getResponseBody();
             os.write(response.getBytes());

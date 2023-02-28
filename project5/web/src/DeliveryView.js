@@ -73,13 +73,14 @@ class DeliveryView extends React.Component {
         return (
             <Stack
                 style={{
-                    maxWidth: "300px",
+                    maxWidth: "500px",
                     margin: "auto",
                 }}
             >
                 {this.state.orders.map((order) => (
                     <Flex key={order.id}>
                         <MainLink label={order.items.join(",")} />
+                        <MainLink label={order.address} />
                         <Button
                             variant="subtle"
                             style={{ marginLeft: "8px", height: "42px" }}

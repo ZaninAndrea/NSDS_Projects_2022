@@ -5,10 +5,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -78,7 +75,7 @@ public class OrdersService {
 
         // Listen on the orders topic to keep an updated cache of the validated orders
         while (true) {
-            final ConsumerRecords<String, Order> records = consumer.poll(Duration.of(5, ChronoUnit.MINUTES));
+            final ConsumerRecords<String, Order> records = consumer.poll(Duration.of(1, ChronoUnit.MINUTES));
 
             for (final ConsumerRecord<String, Order> record : records) {
                 String key = record.key();
@@ -123,8 +120,16 @@ public class OrdersService {
         }
 
         public void handleGet(HttpExchange t) throws IOException {
+            String email = t.getRequestHeaders().getFirst("Authorization");
+            ArrayList<Map.Entry<String,Order>> orders = new ArrayList<Map.Entry<String,Order>>();
+            for (Map.Entry<String,Order> e : cache.entrySet()){
+                if (e.getValue().customerEmail.equals(email)){
+                    orders.add(e);
+                }
+            }
+
             ObjectMapper mapperObj = new ObjectMapper();
-            String response = mapperObj.writeValueAsString(cache.entrySet());
+            String response = mapperObj.writeValueAsString(orders);
             t.sendResponseHeaders(200, response.length());
             OutputStream os = t.getResponseBody();
             os.write(response.getBytes());
@@ -135,13 +140,15 @@ public class OrdersService {
         public void handlePost(HttpExchange t) throws IOException {
             // Parse body of the request
             String body = new String(t.getRequestBody().readAllBytes());
-            String[] items = body.split("\n");
-
+            String[] lines = body.split("\n");
+            String[] items = Arrays.copyOfRange(lines, 1, lines.length);
+            
             // Generate new order message
-            final Order order = new Order(System.currentTimeMillis(), items, Order.Status.REQUESTED);
+            final Order order = new Order(System.currentTimeMillis(), items, Order.Status.REQUESTED, lines[0]);
             UUID uuid = UUID.randomUUID();
             final ProducerRecord<String, Order> record = new ProducerRecord<>(Order.topic, uuid.toString(), order);
 
+            System.out.println("Received order from "+lines[0]);
             // Send message to Kafka and waits for acknowledgement
             try {
                 final Future<RecordMetadata> future = this.producer.send(record);

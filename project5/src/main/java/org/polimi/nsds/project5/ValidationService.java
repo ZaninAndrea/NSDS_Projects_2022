@@ -5,7 +5,6 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.cache.Cache;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.polimi.nsds.project5.Item.Item;
@@ -13,18 +12,20 @@ import org.polimi.nsds.project5.Item.ItemDeserializer;
 import org.polimi.nsds.project5.Order.Order;
 import org.polimi.nsds.project5.Order.OrderDeserializer;
 import org.polimi.nsds.project5.Order.OrderSerializer;
+import org.polimi.nsds.project5.User.User;
+import org.polimi.nsds.project5.User.UserDeserializer;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-class CacheManager implements Runnable
+class ItemCacheManager implements Runnable
 {
     ConcurrentHashMap<String, Item> cache;
     KafkaConsumer<String, Item> consumer;
 
-    public CacheManager(ConcurrentHashMap<String, Item> cache, KafkaConsumer<String, Item> consumer){
+    public ItemCacheManager(ConcurrentHashMap<String, Item> cache, KafkaConsumer<String, Item> consumer){
         this.cache = cache;
         this.consumer = consumer;
     }
@@ -34,7 +35,7 @@ class CacheManager implements Runnable
 
         // Listen on the orders topic to keep an updated cache of the validated orders
         while (true) {
-            final ConsumerRecords<String, Item> records = consumer.poll(Duration.of(5, ChronoUnit.MINUTES));
+            final ConsumerRecords<String, Item> records = consumer.poll(Duration.of(1, ChronoUnit.MINUTES));
 
             for (final ConsumerRecord<String, Item> record : records) {
                 String key = record.key();
@@ -47,6 +48,32 @@ class CacheManager implements Runnable
                     System.out.println("Cached item "+item.name);
                     cache.put(key, item);
                 }
+            }
+        }
+    }
+}
+
+class UserCacheManager implements Runnable
+{
+    ConcurrentHashMap<String, User> cache;
+    KafkaConsumer<String, User> consumer;
+
+    public UserCacheManager(ConcurrentHashMap<String, User> cache, KafkaConsumer<String, User> consumer){
+        this.cache = cache;
+        this.consumer = consumer;
+    }
+    public void run()
+    {
+        System.out.println("Listening for updates on a background thread");
+
+        // Listen on the orders topic to keep an updated cache of the validated orders
+        while (true) {
+            final ConsumerRecords<String, User> records = consumer.poll(Duration.of(1, ChronoUnit.MINUTES));
+
+            for (final ConsumerRecord<String, User> record : records) {
+                String email = record.key();
+                User user = record.value();
+                cache.put(email, user);
             }
         }
     }
@@ -94,6 +121,25 @@ public class ValidationService {
         return consumer;
     }
 
+    private static KafkaConsumer<String, User> setupUsersConsumer(String groupId) {
+        final Properties props = new Properties();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId); // consumer group id
+
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, UserDeserializer.class.getName());
+        props.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
+
+        // The consumer doesn't commit the offsets, because at each startup it must rebuild the cache
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+        KafkaConsumer<String, User> consumer = new KafkaConsumer<>(props);
+        consumer.subscribe(Collections.singletonList(User.topic));
+
+        return consumer;
+    }
+
     private static KafkaProducer<String, Order> setupShippingProducer(String transactionalId){
         final Properties producerProps = new Properties();
         producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers);
@@ -112,18 +158,23 @@ public class ValidationService {
         String id = "validation-service"; // TODO: get from environment
         KafkaConsumer<String, Order> consumer = setupOrdersConsumer();
         KafkaConsumer<String, Item> itemsConsumer = setupItemsConsumer(id);
+        KafkaConsumer<String, User> usersConsumer = setupUsersConsumer(id);
         KafkaProducer<String, Order> producer = setupShippingProducer(id);
 
-        ConcurrentHashMap<String, Item> cache = new ConcurrentHashMap<>();
+        ConcurrentHashMap<String, Item> itemCache = new ConcurrentHashMap<>();
+        ConcurrentHashMap<String, User> userCache = new ConcurrentHashMap<>();
 
-        // Run cache updating in a background thread
-        CacheManager manager = new CacheManager(cache, itemsConsumer);
+        // Run cache updating in a background threads
+        ItemCacheManager manager = new ItemCacheManager(itemCache, itemsConsumer);
         Thread t1 =new Thread(manager);
         t1.start();
+        UserCacheManager manager2 = new UserCacheManager(userCache, usersConsumer);
+        Thread t2 =new Thread(manager2);
+        t2.start();
 
         // Listen for requested orders and validate them
         while (true) {
-            final ConsumerRecords<String, Order> records = consumer.poll(Duration.of(5, ChronoUnit.MINUTES));
+            final ConsumerRecords<String, Order> records = consumer.poll(Duration.of(1, ChronoUnit.MINUTES));
 
             producer.beginTransaction();
             for (final ConsumerRecord<String, Order> record : records) {
@@ -138,17 +189,19 @@ public class ValidationService {
                 if(order.status == Order.Status.REQUESTED){
                     boolean valid = true;
                     for(String item : order.items){
-                        if(!cache.containsKey(item)){
+                        if(!itemCache.containsKey(item)){
                             valid = false;
                             break;
                         }
                     }
 
-                    if(valid){
-                        order.setStatus(Order.Status.VALIDATED);
-                    }else{
+                    if(!valid || !userCache.containsKey(order.customerEmail)){
                         order.setStatus(Order.Status.INVALID);
+                    }else{
+                        order.setStatus(Order.Status.VALIDATED);
+                        order.setAddress(userCache.get(order.customerEmail).address);
                     }
+
                     producer.send(new ProducerRecord<>(Order.topic, record.key(), order));
                 }
             }

@@ -1,13 +1,21 @@
 import "./App.css"
-import { IconBoxSeam, IconUser, IconCheckupList } from "@tabler/icons"
+import {
+    IconBoxSeam,
+    IconUser,
+    IconCheckupList,
+    IconLogout,
+} from "@tabler/icons"
 import {
     ThemeIcon,
     UnstyledButton,
+    Button,
     Group,
     Text,
     Box,
     Header,
     MantineProvider,
+    TextInput,
+    Flex,
 } from "@mantine/core"
 import React, { useState } from "react"
 import CustomerView from "./CustomerView"
@@ -43,11 +51,110 @@ function MainLink({ icon, color, label, selected, onClick }) {
 }
 function App() {
     const [view, setView] = useState("customer")
+    const [loggedIn, setLoggedIn] = useState(false)
+    const [email, setEmail] = useState("")
+    const [name, setName] = useState("")
+    const [address, setAddress] = useState("")
+
+    if (!loggedIn) {
+        return (
+            <MantineProvider withGlobalStyles withNormalizeCSS>
+                <Box
+                    sx={(theme) => ({
+                        height: "100vh",
+                        width: "100vw",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                    })}
+                >
+                    <Box
+                        sx={(theme) => ({
+                            height: "250px",
+                            width: "412px",
+                            background: theme.colors.blue[1],
+                            borderRadius: "8px",
+                        })}
+                    >
+                        <Flex key={"email-input"} style={{ marginTop: "16px" }}>
+                            <Text
+                                size="lg"
+                                style={{ width: "80px", marginLeft: "16px" }}
+                            >
+                                Email:
+                            </Text>
+                            <TextInput
+                                style={{ width: "300px" }}
+                                value={email}
+                                onChange={(e) => {
+                                    setEmail(e.target.value)
+                                }}
+                            ></TextInput>
+                        </Flex>
+                        <Flex key={"name-input"} style={{ marginTop: "8px" }}>
+                            <Text
+                                size="lg"
+                                style={{ width: "80px", marginLeft: "16px" }}
+                            >
+                                Name:
+                            </Text>
+                            <TextInput
+                                style={{ width: "300px" }}
+                                value={name}
+                                onChange={(e) => {
+                                    setName(e.target.value)
+                                }}
+                            ></TextInput>
+                        </Flex>
+                        <Flex
+                            key={"address-input"}
+                            style={{ marginTop: "8px" }}
+                        >
+                            <Text
+                                size="lg"
+                                style={{ width: "80px", marginLeft: "16px" }}
+                            >
+                                Address:
+                            </Text>
+                            <TextInput
+                                style={{ width: "300px" }}
+                                value={address}
+                                onChange={(e) => {
+                                    setAddress(e.target.value)
+                                }}
+                            ></TextInput>
+                        </Flex>
+
+                        <Button
+                            sx={(theme) => ({
+                                display: "block",
+                                width: "calc(100% - 32px)",
+                                margin: "16px",
+                                marginTop: "64px",
+                            })}
+                            onClick={() => {
+                                fetch("http://localhost:8001/users", {
+                                    method: "POST",
+                                    body: `${email}\n${name}\n${address}`,
+                                }).then(() => {
+                                    setLoggedIn(true)
+                                })
+                            }}
+                        >
+                            <Group>
+                                <Text size="sm">REGISTER</Text>
+                            </Group>
+                        </Button>
+                    </Box>
+                </Box>
+            </MantineProvider>
+        )
+    }
 
     let mainBody
     switch (view) {
         case "customer":
-            mainBody = <CustomerView />
+            mainBody = <CustomerView email={email} />
             break
         case "admin":
             mainBody = <AdminView />
@@ -84,6 +191,14 @@ function App() {
                         key="delivery"
                         selected={view === "delivery"}
                         onClick={() => setView("delivery")}
+                    />
+                    <MainLink
+                        icon={<IconLogout size={16} />}
+                        color="red"
+                        label="Log Out"
+                        key="logout"
+                        selected={false}
+                        onClick={() => setLoggedIn(false)}
                     />
                 </Group>
             </Header>

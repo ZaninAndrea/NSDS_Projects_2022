@@ -77,7 +77,7 @@ public class ItemsService {
 
         // Listen on the items topic to keep an updated cache
         while (true) {
-            final ConsumerRecords<String, Item> records = consumer.poll(Duration.of(5, ChronoUnit.MINUTES));
+            final ConsumerRecords<String, Item> records = consumer.poll(Duration.of(1, ChronoUnit.MINUTES));
 
             System.out.println("Polled records: "+records.count());
             for (final ConsumerRecord<String, Item> record : records) {

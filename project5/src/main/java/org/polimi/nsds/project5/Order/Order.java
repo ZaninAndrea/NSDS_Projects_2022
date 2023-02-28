@@ -5,6 +5,8 @@ public class Order implements java.io.Serializable {
     public static final String topic = "orders";
     public long timestamp;
     public String[] items;
+    public String address;
+    public String customerEmail;
 
 
     public enum Status{
@@ -16,14 +18,21 @@ public class Order implements java.io.Serializable {
 
     public Status status;
 
-    public Order(long timestamp, String[] items, Status status){
+    public Order(long timestamp, String[] items, Status status, String customerEmail){
         this.timestamp = timestamp;
         this.items = items;
         this.status = status;
+        this.customerEmail = customerEmail;
     }
 
     public void setStatus(Status status) {
         this.status = status;
+    }
+    public void setAddress(String address) {
+        this.address = address;
+    }
+    public void setCustomerEmail(String email) {
+        this.customerEmail = email;
     }
 
     public void setItems(String[] items) {

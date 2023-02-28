@@ -78,7 +78,7 @@ public class ShippingService {
 
         // Listen on the orders topic to keep an updated cache of the validated orders
         while (true) {
-            final ConsumerRecords<String, Order> records = consumer.poll(Duration.of(5, ChronoUnit.MINUTES));
+            final ConsumerRecords<String, Order> records = consumer.poll(Duration.of(1, ChronoUnit.MINUTES));
 
             for (final ConsumerRecord<String, Order> record : records) {
                 String key = record.key();

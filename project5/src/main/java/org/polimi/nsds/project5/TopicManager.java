@@ -1,9 +1,7 @@
 package org.polimi.nsds.project5;
 
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.AdminClientConfig;
-import org.apache.kafka.clients.admin.CreateTopicsResult;
-import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.admin.*;
+import org.apache.kafka.common.internals.Topic;
 import org.polimi.nsds.project5.Item.Item;
 import org.polimi.nsds.project5.Order.Order;
 import org.polimi.nsds.project5.User.User;
@@ -24,6 +22,13 @@ public class TopicManager {
         Properties props = new Properties();
         props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers);
         AdminClient adminClient = AdminClient.create(props);
+
+//        LinkedList<String> oldTopics = new LinkedList<>();
+//        oldTopics.add(Item.topic);
+//        oldTopics.add(Order.topic);
+//        oldTopics.add(User.topic);
+//        DeleteTopicsResult deleteResult = adminClient.deleteTopics(oldTopics);
+//        deleteResult.all().get();
 
         LinkedList<NewTopic> topics = new LinkedList<>();
         topics.add(new NewTopic(Item.topic, topicPartitions, replicationFactor));

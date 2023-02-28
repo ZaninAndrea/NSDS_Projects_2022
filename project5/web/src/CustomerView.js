@@ -93,9 +93,11 @@ class CustomerView extends React.Component {
     }
 
     updateOrders = async () => {
-        const res = await fetch("http://localhost:8000/orders").then((res) =>
-            res.json()
-        )
+        const res = await fetch("http://localhost:8000/orders", {
+            headers: {
+                Authorization: this.props.email,
+            },
+        }).then((res) => res.json())
         this.setState({
             orders: res
                 .map((order) => {
@@ -177,7 +179,10 @@ class CustomerView extends React.Component {
                                         headers: {
                                             "Content-Type": "text/plain",
                                         },
-                                        body: this.state.basket.join("\n"),
+                                        body:
+                                            this.props.email +
+                                            "\n" +
+                                            this.state.basket.join("\n"),
                                     })
                                     this.setState({
                                         basket: [],
