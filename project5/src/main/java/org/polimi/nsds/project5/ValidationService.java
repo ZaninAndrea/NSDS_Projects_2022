@@ -82,7 +82,8 @@ class UserCacheManager implements Runnable
 public class ValidationService {
     private static final String groupId = "validation-service";
 
-    private static final String kafkaBootstrapServers = "localhost:9092";
+//    private static final String kafkaBootstrapServers = "localhost:9092";
+    private static final String kafkaBootstrapServers = "kafka:9093";
 
     private static KafkaConsumer<String, Order> setupOrdersConsumer(){
         final Properties props = new Properties();

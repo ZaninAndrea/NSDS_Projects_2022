@@ -31,7 +31,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
 public class ShippingService {
-    private static final String kafkaBootstrapServers = "localhost:9092";
+    //    private static final String kafkaBootstrapServers = "localhost:9092";
+    private static final String kafkaBootstrapServers = "kafka:9093";
 
 
     private static KafkaConsumer<String, Order> setupConsumer(String groupId){

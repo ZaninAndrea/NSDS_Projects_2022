@@ -28,7 +28,8 @@ import org.polimi.nsds.project5.Order.OrderSerializer;
 import org.polimi.nsds.project5.Order.Order;
 
 public class OrdersService {
-    private static final String kafkaBootstrapServers = "localhost:9092";
+    //    private static final String kafkaBootstrapServers = "localhost:9092";
+    private static final String kafkaBootstrapServers = "kafka:9093";
 
     private static KafkaConsumer<String, Order> setupConsumer(String groupId) {
         final Properties props = new Properties();
@@ -142,7 +143,7 @@ public class OrdersService {
             String body = new String(t.getRequestBody().readAllBytes());
             String[] lines = body.split("\n");
             String[] items = Arrays.copyOfRange(lines, 1, lines.length);
-            
+
             // Generate new order message
             final Order order = new Order(System.currentTimeMillis(), items, Order.Status.REQUESTED, lines[0]);
             UUID uuid = UUID.randomUUID();

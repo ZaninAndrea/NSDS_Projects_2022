@@ -21,7 +21,8 @@ import java.util.UUID;
 import java.util.concurrent.Future;
 
 public class UsersService {
-    private static final String kafkaBootstrapServers = "localhost:9092";
+    //    private static final String kafkaBootstrapServers = "localhost:9092";
+    private static final String kafkaBootstrapServers = "kafka:9093";
 
     private static KafkaProducer<String, User> setupProducer(){
         final Properties props = new Properties();

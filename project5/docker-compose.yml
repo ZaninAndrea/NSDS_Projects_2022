@@ -39,6 +39,39 @@ services:
       - "bootstrapServers=kafka:9093"
     depends_on:
       - kafka
+  validation:
+    build:
+      dockerfile: ./Validation.Dockerfile
+    depends_on:
+      - kafka
+  users:
+    build:
+      dockerfile: ./Users.Dockerfile
+    depends_on:
+      - kafka
+    ports:
+      - "8001:8001"
+  items:
+    build:
+      dockerfile: ./Items.Dockerfile
+    depends_on:
+      - kafka
+    ports:
+      - "8003:8003"
+  orders:
+    build:
+      dockerfile: ./Orders.Dockerfile
+    depends_on:
+      - kafka
+    ports:
+      - "8000:8000"
+  shipping:
+    build:
+      dockerfile: ./Shipping.Dockerfile
+    depends_on:
+      - kafka
+    ports:
+      - "8002:8002"
 
 volumes:
   zookeeper_data_2:
