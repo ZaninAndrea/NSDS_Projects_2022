@@ -1,5 +1,6 @@
 package org.polimi.nsds.project5;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -80,12 +81,10 @@ class UserCacheManager implements Runnable
 }
 
 public class ValidationService {
-    private static final String groupId = "validation-service";
-
 //    private static final String kafkaBootstrapServers = "localhost:9092";
     private static final String kafkaBootstrapServers = "kafka:9093";
 
-    private static KafkaConsumer<String, Order> setupOrdersConsumer(){
+    private static KafkaConsumer<String, Order> setupOrdersConsumer(String groupId){
         final Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
@@ -156,11 +155,13 @@ public class ValidationService {
     }
 
     public static void main(String[] args) {
-        String id = "validation-service"; // TODO: get from environment
-        KafkaConsumer<String, Order> consumer = setupOrdersConsumer();
-        KafkaConsumer<String, Item> itemsConsumer = setupItemsConsumer(id);
-        KafkaConsumer<String, User> usersConsumer = setupUsersConsumer(id);
-        KafkaProducer<String, Order> producer = setupShippingProducer(id);
+        String groupName = System.getenv().get("KAFKA_GROUP_ID");
+        String id = RandomStringUtils.randomAlphabetic(15);
+
+        KafkaConsumer<String, Order> consumer = setupOrdersConsumer(groupName);
+        KafkaConsumer<String, Item> itemsConsumer = setupItemsConsumer(groupName + id);
+        KafkaConsumer<String, User> usersConsumer = setupUsersConsumer(groupName + id);
+        KafkaProducer<String, Order> producer = setupShippingProducer(groupName + id);
 
         ConcurrentHashMap<String, Item> itemCache = new ConcurrentHashMap<>();
         ConcurrentHashMap<String, User> userCache = new ConcurrentHashMap<>();

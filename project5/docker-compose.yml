@@ -39,11 +39,23 @@ services:
       - "bootstrapServers=kafka:9093"
     depends_on:
       - kafka
+  web:
+    build:
+      dockerfile: ./Web.Dockerfile
+    depends_on:
+      - users
+      - items
+      - orders
+      - shipping
+    ports:
+      - "3000:3000"
   validation:
     build:
       dockerfile: ./Validation.Dockerfile
     depends_on:
       - kafka
+    environment:
+      - "KAFKA_GROUP_ID=validation-consumer"
   users:
     build:
       dockerfile: ./Users.Dockerfile
@@ -58,6 +70,8 @@ services:
       - kafka
     ports:
       - "8003:8003"
+    environment:
+      - "KAFKA_GROUP_ID=item-consumer"
   orders:
     build:
       dockerfile: ./Orders.Dockerfile
@@ -65,6 +79,8 @@ services:
       - kafka
     ports:
       - "8000:8000"
+    environment:
+      - "KAFKA_GROUP_ID=orders-consumer"
   shipping:
     build:
       dockerfile: ./Shipping.Dockerfile
@@ -72,6 +88,8 @@ services:
       - kafka
     ports:
       - "8002:8002"
+    environment:
+      - "KAFKA_GROUP_ID=shipping-consumer"
 
 volumes:
   zookeeper_data_2:

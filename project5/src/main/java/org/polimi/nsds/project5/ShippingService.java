@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -66,8 +67,9 @@ public class ShippingService {
 
     public static void main(String[] args) throws Exception{
         final KafkaProducer<String, Order> producer = setupProducer();
-        // TODO: get the group if from the env
-        final KafkaConsumer<String, Order> consumer =  setupConsumer("shipping-consumer");
+        String groupId = System.getenv().get("KAFKA_GROUP_ID") + RandomStringUtils.randomAlphabetic(15);
+        System.out.println("Using group-id "+groupId);
+        final KafkaConsumer<String, Order> consumer =  setupConsumer(groupId);
         ConcurrentHashMap<String, Order> cache = new ConcurrentHashMap<String, Order>();
 
         // Starts an http server to listen for order requests
