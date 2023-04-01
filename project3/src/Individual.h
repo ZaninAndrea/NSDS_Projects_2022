@@ -2,6 +2,7 @@
 #define NSDS_PROJECT3_INDIVIDUAL
 #include "Simulation.h"
 #include <random>
+#include <set>
 
 class Individual
 {
@@ -23,6 +24,7 @@ public:
     Individual() = default;
     Individual(std::default_random_engine &r_engine, State health, SimulationParameters &p);
     int parentNodeRank(SimulationParameters &p, int size);
+    std::set<int> destinationRanks(SimulationParameters &p, int size);
 
     // private:
     float x;

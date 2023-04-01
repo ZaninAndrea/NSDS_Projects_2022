@@ -1,5 +1,6 @@
 #include "Simulation.h"
 #include "Individual.h"
+#include <iostream>
 #include <mpi.h>
 #include <stdio.h>
 #include <string>
@@ -35,13 +36,18 @@ Date parseDate(int time)
     return Date{month, day, hours, minutes, seconds};
 }
 
-void logStatistics(std::vector<Individual> &local_individuals, int rank, int time)
+void logStatistics(std::vector<Individual> &local_individuals, SimulationParameters &p, int rank, int group_size, int time)
 {
     int local_susceptible = 0;
     int local_infected = 0;
     int local_recovered = 0;
     for (Individual &ind : local_individuals)
     {
+        if (ind.parentNodeRank(p, group_size) != rank)
+        {
+            continue;
+        }
+
         switch (ind.Health())
         {
         case Individual::Susceptible:
@@ -84,6 +90,8 @@ void initializeIndividualsPool(std::vector<Individual> &local_individuals, std::
     }
 }
 
+MPI_Datatype MPI_Individual;
+
 int main(int argc, char *argv[])
 {
     MPI_Init(&argc, &argv);
@@ -102,7 +110,7 @@ int main(int argc, char *argv[])
     params.VERTICAL_BLOCKS = 3;
     params.BLOCK_WIDTH = params.WORLD_WIDTH / float(params.HORIZONTAL_BLOCKS);
     params.BLOCK_HEIGHT = params.WORLD_HEIGHT / float(params.VERTICAL_BLOCKS);
-    params.TIME_STEP = 10;
+    params.TIME_STEP = 100;
     params.SIMULATION_STEPS = 1000000;
     params.SPREADING_DISTANCE = 15.;
     params.SPREADING_DISTANCE2 = params.SPREADING_DISTANCE * params.SPREADING_DISTANCE;
@@ -110,7 +118,6 @@ int main(int argc, char *argv[])
     params.INITIAL_INFECTED = 100;
 
     // Create MPI type for individual
-    MPI_Datatype MPI_Individual;
     int blockCount = 5;
     std::vector<int> blockLengths{1, 1, 1, 1, 1};
     std::vector<long> blockDisplacements{0, 4, 8, 12, 16};
@@ -127,17 +134,27 @@ int main(int argc, char *argv[])
     // Run simulation steps
     for (int step = 0; step < params.SIMULATION_STEPS; step++)
     {
-        // Move each individual and then copy it in the pool of individuals
-        // to send to its new parent node
+        // Move each individual and compute individuals to send to each node
         std::vector<std::vector<Individual>> local_individuals_by_group;
         local_individuals_by_group.resize(group_size);
         for (Individual &ind : local_individuals)
         {
+            // Skip the nodes not belonging to the current node, unless it is the first step
+            // in which the individuals have not been moved yet
+            if (ind.parentNodeRank(params, group_size) != rank && step != 0)
+            {
+                continue;
+            }
+
             ind.move(r_engine, params);
-            local_individuals_by_group[ind.parentNodeRank(params, group_size)].push_back(ind);
+
+            for (int rank : ind.destinationRanks(params, group_size))
+            {
+                local_individuals_by_group[rank].push_back(ind);
+            }
         }
 
-        // Send the individuals to their new parent node
+        // Send and receive individuals
         std::vector<Individual> new_local_individuals;
         for (int targetNode = 0; targetNode < group_size; targetNode++)
         {
@@ -145,10 +162,13 @@ int main(int argc, char *argv[])
 
             if (rank == targetNode)
             {
+                // Gather count of the individuals to receive from each node
                 std::vector<int> localCounts{};
                 localCounts.resize(group_size);
                 MPI_Gather(&localIndividualsCount, 1, MPI_INT, localCounts.data(), 1, MPI_INT, targetNode, MPI_COMM_WORLD);
 
+                // Compute cumulative counts of the individuals to receive
+                // from each node
                 int new_individuals_count = 0;
                 std::vector<int> displacements{};
                 displacements.push_back(0);
@@ -163,10 +183,10 @@ int main(int argc, char *argv[])
                 }
                 new_local_individuals.resize(new_individuals_count);
 
+                // Gather the individuals
                 MPI_Gatherv(local_individuals_by_group[targetNode].data(), localIndividualsCount, MPI_Individual,
                             new_local_individuals.data(), localCounts.data(), displacements.data(), MPI_Individual, targetNode, MPI_COMM_WORLD);
-
-                local_individuals = (new_local_individuals);
+                local_individuals = new_local_individuals;
             }
             else
             {
@@ -181,8 +201,11 @@ int main(int argc, char *argv[])
         had_contacts.resize(local_N);
         for (size_t i = 0; i < local_N; i++)
         {
-            for (size_t j = i + 1; j < local_N; j++)
+            for (size_t j = 0; j < local_N; j++)
             {
+                if (local_individuals[j].parentNodeRank(params, group_size) != rank)
+                    continue;
+
                 if (local_individuals[i].Health() == Individual::Infected &&
                     dist(local_individuals[i], local_individuals[j]) < params.SPREADING_DISTANCE)
                 {
@@ -197,8 +220,8 @@ int main(int argc, char *argv[])
         }
 
         // Compute statistics
-        if (step % 100 == 0)
-            logStatistics(local_individuals, rank, step * params.TIME_STEP);
+        if (step % 60 == 0)
+            logStatistics(local_individuals, params, rank, group_size, step * params.TIME_STEP);
     }
 
     MPI_Finalize();
