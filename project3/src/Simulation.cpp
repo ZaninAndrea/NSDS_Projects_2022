@@ -38,42 +38,80 @@ Date parseDate(int time)
 
 void logStatistics(std::vector<Individual> &local_individuals, SimulationParameters &p, int rank, int group_size, int time)
 {
-    int local_susceptible = 0;
-    int local_infected = 0;
-    int local_recovered = 0;
-    for (Individual &ind : local_individuals)
+    for (Country &country : p.COUNTRIES)
     {
-        if (ind.parentNodeRank(p, group_size) != rank)
+        int local_susceptible = 0;
+        int local_infected = 0;
+        int local_recovered = 0;
+        for (Individual &ind : local_individuals)
         {
-            continue;
+            if (ind.parentNodeRank(p, group_size) != rank || !ind.isIn(country))
+            {
+                continue;
+            }
+
+            switch (ind.Health())
+            {
+            case Individual::Susceptible:
+                local_susceptible++;
+                break;
+
+            case Individual::Infected:
+                local_infected++;
+                break;
+
+            case Individual::Recovered:
+                local_recovered++;
+                break;
+            }
         }
 
-        switch (ind.Health())
+        int total_susceptible;
+        int total_infected;
+        int total_recovered;
+        MPI_Reduce(&local_susceptible, &total_susceptible, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&local_infected, &total_infected, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&local_recovered, &total_recovered, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+        if (rank == 0)
         {
-        case Individual::Susceptible:
-            local_susceptible++;
-            break;
-
-        case Individual::Infected:
-            local_infected++;
-            break;
-
-        case Individual::Recovered:
-            local_recovered++;
-            break;
+            Date date = parseDate(time);
+            printf("Country: %s\n", country.name.c_str());
+            printf("Month: %02d, Day: %02d, Time %02d:%02d:%02d --- sus %d, inf %d, rec %d\n", date.month, date.day, date.hours, date.minutes, date.seconds, total_susceptible, total_infected, total_recovered);
         }
     }
+    if (rank == 0)
+        printf("\n");
+}
 
-    int total_susceptible;
-    int total_infected;
-    int total_recovered;
-    MPI_Reduce(&local_susceptible, &total_susceptible, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&local_infected, &total_infected, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&local_recovered, &total_recovered, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+void saveSnapshot(std::vector<Individual> &local_individuals, int rank, int group_size, int time, SimulationParameters &p)
+{
+    std::string timeStep = std::to_string(time * p.TIME_STEP);
+    timeStep = std::string(9 - std::min(9, int(timeStep.length())), '0') + timeStep;
+
+    std::string filename = "snapshots/snapshot_" + timeStep + ".csv";
     if (rank == 0)
     {
-        Date date = parseDate(time);
-        printf("Month: %02d, Day: %02d, Time %02d:%02d:%02d --- sus %d, inf %d, rec %d\n", date.month, date.day, date.hours, date.minutes, date.seconds, total_susceptible, total_infected, total_recovered);
+        FILE *file = fopen(filename.c_str(), "w");
+        fprintf(file, "x,y,health\n");
+        fclose(file);
+    }
+
+    for (int i = 0; i < group_size; i++)
+    {
+        if (rank == i)
+        {
+            FILE *file = fopen(filename.c_str(), "a");
+            for (Individual &ind : local_individuals)
+            {
+                if (ind.parentNodeRank(p, group_size) != rank)
+                {
+                    continue;
+                }
+                fprintf(file, "%f,%f,%d\n", ind.x, ind.y, ind.Health());
+            }
+            fclose(file);
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
     }
 }
 
@@ -98,24 +136,29 @@ int main(int argc, char *argv[])
     int rank, group_size;
     MPI_Comm_size(MPI_COMM_WORLD, &group_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    printf("Rankkk %d\n", rank);
     std::default_random_engine r_engine(rank);
 
     // Setup simulation parameters
     SimulationParameters params{};
     params.SPEED = 0.1;
-    params.WORLD_WIDTH = 500.;
-    params.WORLD_HEIGHT = 500.;
+    params.WORLD_WIDTH = 10000.;
+    params.WORLD_HEIGHT = 10000.;
     params.HORIZONTAL_BLOCKS = 3;
-    params.VERTICAL_BLOCKS = 3;
+    params.VERTICAL_BLOCKS = 2;
     params.BLOCK_WIDTH = params.WORLD_WIDTH / float(params.HORIZONTAL_BLOCKS);
     params.BLOCK_HEIGHT = params.WORLD_HEIGHT / float(params.VERTICAL_BLOCKS);
-    params.TIME_STEP = 100;
-    params.SIMULATION_STEPS = 1000000;
-    params.SPREADING_DISTANCE = 15.;
+    params.TIME_STEP = 200;
+    params.SIMULATION_STEPS = 10000;
+    params.SPREADING_DISTANCE = 500.;
     params.SPREADING_DISTANCE2 = params.SPREADING_DISTANCE * params.SPREADING_DISTANCE;
-    params.INITIAL_INDIVIDUALS = 1000;
-    params.INITIAL_INFECTED = 100;
+    params.INITIAL_INDIVIDUALS = 500;
+    params.INITIAL_INFECTED = 50;
+    params.COUNTRIES = {
+        Country{0, params.WORLD_WIDTH, 0, params.WORLD_HEIGHT, "World"},
+        Country{1000, 3000, 1000, 3000, "Italy"},
+        Country{6000, 9000, 6000, 9000, "Germany"},
+    };
+    params.SAVE_SNAPSHOTS = true;
 
     // Create MPI type for individual
     int blockCount = 5;
@@ -220,8 +263,15 @@ int main(int argc, char *argv[])
         }
 
         // Compute statistics
-        if (step % 60 == 0)
+        if ((step * params.TIME_STEP) % params.EXPORT_INTERVAL == 0)
+        {
             logStatistics(local_individuals, params, rank, group_size, step * params.TIME_STEP);
+        }
+
+        if (params.SAVE_SNAPSHOTS)
+        {
+            saveSnapshot(local_individuals, rank, group_size, step, params);
+        }
     }
 
     MPI_Finalize();

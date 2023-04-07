@@ -16,6 +16,7 @@ public:
     static std::uniform_real_distribution<double> rand_uniform;
 
     friend float dist(Individual a, Individual b);
+    friend void saveSnapshot(std::vector<Individual> &local_individuals, int rank, int group_size, int time, SimulationParameters &p);
 
     void move(std::default_random_engine &r_engine, SimulationParameters &p);
     void updateHealth(bool had_contacts, SimulationParameters &p);
@@ -26,7 +27,9 @@ public:
     int parentNodeRank(SimulationParameters &p, int size);
     std::set<int> destinationRanks(SimulationParameters &p, int size);
 
-    // private:
+    bool isIn(Country &country);
+
+private:
     float x;
     float y;
     float direction;

@@ -1,5 +1,16 @@
 #ifndef NSDS_PROJECT3_SIMULATION
 #define NSDS_PROJECT3_SIMULATION
+#include <string>
+#include <vector>
+
+struct Country
+{
+    float minX;
+    float maxX;
+    float minY;
+    float maxY;
+    std::string name;
+};
 
 struct SimulationParameters
 {
@@ -19,6 +30,9 @@ struct SimulationParameters
     unsigned int MIN_CONTACT_TIME = 10 * 60;
     unsigned int INFECTED_DURATION = 3600 * 24 * 10;
     unsigned int RECOVERED_DURATION = 3600 * 24 * 90;
+    unsigned int EXPORT_INTERVAL = 60 * 60 * 24;
+    bool SAVE_SNAPSHOTS = false;
+    std::vector<Country> COUNTRIES;
 };
 
 #endif

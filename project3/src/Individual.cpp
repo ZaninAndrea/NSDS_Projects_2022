@@ -23,23 +23,10 @@ int Individual::parentNodeRank(SimulationParameters &p, int size)
 
 int getRankFromPosition(float x, float y, SimulationParameters &p, int size)
 {
-    // Pacman world boundaries
-    if (x < 0)
+    // Ignore points outside the world
+    if (x < 0 || x > p.WORLD_WIDTH || y < 0 || y > p.WORLD_HEIGHT)
     {
-        x += p.WORLD_WIDTH;
-    }
-    else if (x > p.WORLD_WIDTH)
-    {
-        x -= p.WORLD_WIDTH;
-    }
-
-    if (y < 0)
-    {
-        y += p.WORLD_WIDTH;
-    }
-    else if (y > p.WORLD_WIDTH)
-    {
-        y -= p.WORLD_WIDTH;
+        return -1;
     }
 
     // Compute block coordinates
@@ -62,6 +49,8 @@ std::set<int> Individual::destinationRanks(SimulationParameters &p, int size)
     ranks.insert(getRankFromPosition(this->x + p.SPREADING_DISTANCE, this->y - p.SPREADING_DISTANCE, p, size));
     ranks.insert(getRankFromPosition(this->x - p.SPREADING_DISTANCE, this->y - p.SPREADING_DISTANCE, p, size));
 
+    ranks.erase(-1);
+
     return ranks;
 }
 
@@ -75,23 +64,27 @@ void Individual::move(std::default_random_engine &r_engine, SimulationParameters
     x += cos(direction) * p.SPEED * p.TIME_STEP;
     y += sin(direction) * p.SPEED * p.TIME_STEP;
 
-    // Pacman world boundaries
+    // Bounce off the walls
     if (x < 0)
     {
-        x += p.WORLD_WIDTH;
+        x = -x;
+        direction = M_PI - direction;
     }
     else if (x > p.WORLD_WIDTH)
     {
-        x -= p.WORLD_WIDTH;
+        x = p.WORLD_WIDTH - (x - p.WORLD_WIDTH);
+        direction = M_PI - direction;
     }
 
     if (y < 0)
     {
-        y += p.WORLD_WIDTH;
+        y = -y;
+        direction = -direction;
     }
     else if (y > p.WORLD_WIDTH)
     {
-        y -= p.WORLD_WIDTH;
+        y = p.WORLD_HEIGHT - (y - p.WORLD_HEIGHT);
+        direction = -direction;
     }
 }
 
@@ -137,4 +130,9 @@ void Individual::updateHealth(bool had_contacts, SimulationParameters &p)
 Individual::State const &Individual::Health()
 {
     return this->health;
+}
+
+bool Individual::isIn(Country &country)
+{
+    return this->x >= country.minX && this->x <= country.maxX && this->y >= country.minY && this->y <= country.maxY;
 }
