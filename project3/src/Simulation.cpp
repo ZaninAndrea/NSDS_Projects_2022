@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
     params.SPEED = 0.1;
     params.WORLD_WIDTH = 10000.;
     params.WORLD_HEIGHT = 10000.;
-    params.HORIZONTAL_BLOCKS = 3;
+    params.HORIZONTAL_BLOCKS = 2;
     params.VERTICAL_BLOCKS = 2;
     params.BLOCK_WIDTH = params.WORLD_WIDTH / float(params.HORIZONTAL_BLOCKS);
     params.BLOCK_HEIGHT = params.WORLD_HEIGHT / float(params.VERTICAL_BLOCKS);
@@ -154,10 +154,16 @@ int main(int argc, char *argv[])
     params.INITIAL_INDIVIDUALS = 500;
     params.INITIAL_INFECTED = 50;
     params.COUNTRIES = {
-        Country{0, params.WORLD_WIDTH, 0, params.WORLD_HEIGHT, "World"},
-        Country{1000, 3000, 1000, 3000, "Italy"},
-        Country{6000, 9000, 6000, 9000, "Germany"},
+        // Country{0, params.WORLD_WIDTH, 0, params.WORLD_HEIGHT, "World"},
+        // Country{1000, 3000, 1000, 3000, "Italy"},
+        // Country{6000, 9000, 6000, 9000, "Germany"},
     };
+
+    for (int i = 0; i < 50000; i++)
+    {
+        params.COUNTRIES.push_back(Country{0, params.WORLD_WIDTH, 0, params.WORLD_HEIGHT, "World"});
+    }
+
     params.SAVE_SNAPSHOTS = true;
 
     // Create MPI type for individual
