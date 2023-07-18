@@ -5,7 +5,7 @@ import akka.actor.ActorSelection;
 
 public abstract class Sensor extends AbstractActor{
 	
-	protected int roomID;
+	protected int id;
 	protected ActorSelection server;
 
 }

@@ -6,13 +6,13 @@ import objects.MessageType;
 
 public class SensorMsg implements Serializable{
 	
-	private int roomID;
+	private int id;
 	private double value;
 	private MessageType type;
 
 	public SensorMsg(double value, int id, MessageType type) {
 		this.value = value;
-		this.roomID = id;
+		this.id = id;
 		this.type = type;
 	}
 
@@ -21,7 +21,7 @@ public class SensorMsg implements Serializable{
 	}
 	
 	public int getID() {
-		return roomID;
+		return id;
 	}
 
 	public MessageType getType() {

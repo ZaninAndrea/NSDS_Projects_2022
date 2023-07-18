@@ -6,12 +6,13 @@ import java.util.ArrayList;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
-import actors.HeatSensor;
-import actors.MovementSensor;
+import actors.RunnableSensor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import messages.ConfigMsg;
-import messages.GenerateMsg;
+import objects.ApplianceSensor;
+import objects.ConditioningSensor;
+import objects.LightSensor;
 
 public class SensorMain {
 
@@ -21,30 +22,47 @@ public class SensorMain {
 		final ActorSystem sys = ActorSystem.create("SensorSystem", conf);
 
 		// generating sensor list
-		final ArrayList<ActorRef> sensorList = new ArrayList<ActorRef>();
+		final ArrayList<ActorRef> conditioningSensorList = new ArrayList<ActorRef>();
+		final ArrayList<ActorRef> lightSensorList = new ArrayList<ActorRef>();
+		final ArrayList<ActorRef> applianceSensorList = new ArrayList<ActorRef>();
+		
 		for (int i = 0; i < ServerMain.NUMBER_OF_ROOMS; i++) {
 
 			// creating the new sensors
-			ActorRef lightSensor = sys.actorOf(MovementSensor.props(), "LightSensor" + (i));
-			ActorRef heatSensor = sys.actorOf(HeatSensor.props(), "HeatSensor" + (i));
+			ActorRef lightSensor = sys.actorOf(LightSensor.props(), "LightSensor" + (i));
+			ActorRef conditioningSensor = sys.actorOf(ConditioningSensor.props(), "HeatSensor" + (i));
 
 			lightSensor.tell(new ConfigMsg(i), ActorRef.noSender());
-			heatSensor.tell(new ConfigMsg(i), ActorRef.noSender());
+			conditioningSensor.tell(new ConfigMsg(i), ActorRef.noSender());
 
 			// add the new sensors
-			sensorList.add(lightSensor);
-			sensorList.add(heatSensor);
+			lightSensorList.add(lightSensor);
+			conditioningSensorList.add(conditioningSensor);
+		}
+		
+		for (int i = 0; i < ServerMain.NUMBER_OF_APPLIANCES; i++) {
+
+			// creating the new sensors
+			ActorRef applianceSensor = sys.actorOf(ApplianceSensor.props(), "ApplianceSensor" + (i));
+
+			applianceSensor.tell(new ConfigMsg(i), ActorRef.noSender());
+
+			// add the new sensors
+			applianceSensorList.add(applianceSensor);
 		}
 
-		// sending messages
-		for (int i = 0; i < ServerMain.NUMBER_OF_MESSAGES; i++) {
-			for (ActorRef a : sensorList) {
-				a.tell(new GenerateMsg(), ActorRef.noSender());
-			}
-			System.out.println("\n>> the sensors detected something \n\n");
-			Thread.sleep(30000);
-		}
+		Thread movSensor = new Thread(new RunnableSensor(lightSensorList, 30000));
+		Thread applianceSensor = new Thread(new RunnableSensor(applianceSensorList, 60000));
+		Thread heatSensor = new Thread(new RunnableSensor(conditioningSensorList, 15000));
+		
+		movSensor.start();
+		heatSensor.start();
+		applianceSensor.start();
 
+		movSensor.join();
+		heatSensor.join();
+		applianceSensor.join();
+		
 		sys.terminate();
 
 	}

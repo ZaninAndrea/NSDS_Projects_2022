@@ -19,22 +19,24 @@ public class GUI {
 	private ClientActor client;
 	private JFrame frame;
 	private JPanel mainPanel, textPanel, buttonPanel;
-	private ArrayList<JLabel> labList;
-	private JTextField targetTemp, roomId;
-	private JLabel labTemp, labRoom;
-	private JButton onOff, targTemp;
+	private ArrayList<JLabel> labelList;
+	private JTextField targetTemp_text, roomId_text;
+	private JLabel labTemp, labRoom, totalPowerUsage, applianceLabel;
+	private JButton switchStatus, sendTargetTemp;
 
-	public GUI(ArrayList<Room> roomList, ClientActor cl) {
+	public GUI(ArrayList<Room> roomList, String appliances, int usage, ClientActor cl) {
 		client = cl;
 		// Instantiating GUI Objects
 		frame = new JFrame();
-		targetTemp = new JTextField();
-		roomId = new JTextField();
-		targTemp = new JButton("Set Target Temperature");
-		onOff = new JButton("Set ON/OFF");
+		targetTemp_text = new JTextField();
+		roomId_text = new JTextField();
+		sendTargetTemp = new JButton("Set Target Temperature");
+		switchStatus = new JButton("Set ON/OFF");
 		labTemp = new JLabel("Target Temperature: ");
 		labRoom = new JLabel("Room Number: ");
-		labList = new ArrayList<JLabel>();
+		applianceLabel = new JLabel(appliances);
+		totalPowerUsage = new JLabel("Total Power Usage: "+ usage + " W");
+		labelList = new ArrayList<JLabel>();
 		mainPanel = new JPanel();
 		textPanel = new JPanel();
 		buttonPanel = new JPanel();
@@ -42,23 +44,27 @@ public class GUI {
 		// set fonts
 		Font fp = new Font(Font.SANS_SERIF, Font.PLAIN, 15);
 		Font fb = new Font(Font.SANS_SERIF, Font.BOLD, 15);
-		targetTemp.setFont(fp);
-		roomId.setFont(fp);
+		targetTemp_text.setFont(fp);
+		roomId_text.setFont(fp);
 		labRoom.setFont(fp);
 		labTemp.setFont(fp);
-		onOff.setFont(fb);
-		targTemp.setFont(fb);
+		applianceLabel.setFont(fp);
+		totalPowerUsage.setFont(fb);
+		switchStatus.setFont(fb);
+		sendTargetTemp.setFont(fb);
 
 		// set layouts and sizes
-		frame.setSize(800, 400);
+		frame.setSize(1000, 500);
 		mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
 		textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.X_AXIS));
-		roomId.setMaximumSize(new Dimension(new Integer(500), new Integer(150)));
-		roomId.setBorder(new LineBorder(Color.BLACK, 1));
-		targetTemp.setMaximumSize(new Dimension(new Integer(500), new Integer(150)));
-		targetTemp.setBorder(new LineBorder(Color.BLACK, 1));
+		roomId_text.setMaximumSize(new Dimension(new Integer(500), new Integer(150)));
+		roomId_text.setBorder(new LineBorder(Color.BLACK, 1));
+		targetTemp_text.setMaximumSize(new Dimension(new Integer(500), new Integer(150)));
+		targetTemp_text.setBorder(new LineBorder(Color.BLACK, 1));
 		labTemp.setBorder(new EmptyBorder(0, 5, 0, 0));
 		labRoom.setBorder(new EmptyBorder(0, 5, 0, 0));
+		applianceLabel.setBorder(new EmptyBorder(0, 5, 0, 0));
+		totalPowerUsage.setBorder(new EmptyBorder(0, 5, 0, 0));
 
 		// add one panel for each room
 		for (Room c : roomList) {
@@ -66,20 +72,21 @@ public class GUI {
 			JLabel lab = new JLabel(c.toString());
 			lab.setFont(fp);
 			pan.add(lab);
-			labList.add(lab);
+			labelList.add(lab);
 			mainPanel.add(pan);
 		}
-
+		mainPanel.add(applianceLabel);
+		
 		// add texts area
 		textPanel.add(labRoom);
-		textPanel.add(roomId);
+		textPanel.add(roomId_text);
 		textPanel.add(labTemp);
-		textPanel.add(targetTemp);
+		textPanel.add(targetTemp_text);
 		mainPanel.add(textPanel);
 		textPanel.setBounds(0, 500, textPanel.getWidth(), textPanel.getHeight());
 
 		// add button listeners
-		onOff.addMouseListener(new MouseListener() {
+		switchStatus.addMouseListener(new MouseListener() {
 
 			@Override
 			public void mouseReleased(MouseEvent e) {
@@ -99,27 +106,27 @@ public class GUI {
 
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				if (roomId.getText().equals("") || roomId.getText() == null)
+				if (roomId_text.getText().equals("") || roomId_text.getText() == null)
 					JOptionPane.showMessageDialog(frame, "Invalid Room ID");
 				else {
-					int x = Integer.parseInt(roomId.getText());
+					int x = Integer.parseInt(roomId_text.getText());
 
 					if (x < 0 || x > client.getRoomList().size())
 						JOptionPane.showMessageDialog(frame, "Invalid Room ID");
 					else {
-						if (client.getRoomList().get(x).getHeaterStatus() != Status.MANUALLY_ON)
+						if (client.getRoomList().get(x).getHeaterStatus() != Status.MANUALLY_OFF)
 							client.getServer().tell(
-									new ClientMsg(x, Status.MANUALLY_ON, MessageType.MANUALLY_SET_HEATER),
+									new ClientMsg(x, Status.MANUALLY_OFF, MessageType.MANUALLY_SET_HEATER),
 									client.self());
 						else
-							client.getServer().tell(new ClientMsg(x, Status.OFF, MessageType.MANUALLY_SET_HEATER),
+							client.getServer().tell(new ClientMsg(x, Status.AUTO, MessageType.MANUALLY_SET_HEATER),
 									client.self());
 					}
 				}
 			}
 		});
 
-		targTemp.addMouseListener(new MouseListener() {
+		sendTargetTemp.addMouseListener(new MouseListener() {
 
 			@Override
 			public void mouseReleased(MouseEvent e) {
@@ -139,14 +146,14 @@ public class GUI {
 
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				if (roomId.getText().equals("") || roomId.getText() == null)
+				if (roomId_text.getText().equals("") || roomId_text.getText() == null)
 					JOptionPane.showMessageDialog(frame, "Invalid Room ID");
 				else {
-					if (targetTemp.getText().equals("") || targetTemp.getText() == null)
+					if (targetTemp_text.getText().equals("") || targetTemp_text.getText() == null)
 						JOptionPane.showMessageDialog(frame, "Invalid Temperature");
 					else {
-						int x = Integer.parseInt(roomId.getText());
-						int y = Integer.parseInt(targetTemp.getText());
+						int x = Integer.parseInt(roomId_text.getText());
+						double y = Double.parseDouble(targetTemp_text.getText());
 
 						if (x < 0 || x > client.getRoomList().size())
 							JOptionPane.showMessageDialog(frame, "Invalid Room ID");
@@ -159,9 +166,11 @@ public class GUI {
 		});
 
 		// add buttons
-		buttonPanel.add(onOff);
-		buttonPanel.add(targTemp);
+		buttonPanel.add(switchStatus);
+		buttonPanel.add(sendTargetTemp);
 		mainPanel.add(buttonPanel);
+		
+		mainPanel.add(totalPowerUsage);
 
 		// add the main panel to the frame
 		frame.add(mainPanel);
@@ -169,8 +178,13 @@ public class GUI {
 		frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 	}
 
-	//
-	public void update(Room r) {
-		labList.get(r.getId()).setText(r.toString());
+	public void update(Room r, int usage) {
+		labelList.get(r.getId()).setText(r.toString());
+		totalPowerUsage.setText("Total Power Usage: "+ usage + " W");
+	}
+	
+	public void update(String app, int usage) {
+		applianceLabel.setText(app);
+		totalPowerUsage.setText("Total Power Usage: "+ usage + " W");
 	}
 }

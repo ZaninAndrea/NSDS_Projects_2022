@@ -18,6 +18,7 @@ public class ServerMain {
 	
 	public static final int NUMBER_OF_MESSAGES = 5;
 	public static final int NUMBER_OF_ROOMS = 4;
+	public static final int NUMBER_OF_APPLIANCES = 3;
 
 	public static void main(String[] args) throws Exception {
 		//scala.concurrent.duration.Duration timeout = scala.concurrent.duration.Duration.create(5, SECONDS);
@@ -33,8 +34,6 @@ public class ServerMain {
 		
 		// adding the actor to the supervisor
 		ask(supervisor, server, 5000);
-		//scala.concurrent.Future<Object> waitingForCounter = ask(supervisor, server, 5000);
-		//server = (ActorRef) waitingForCounter.result(timeout, null);
 		
 		String s = (new BufferedReader(new InputStreamReader(System.in))).readLine();
 		

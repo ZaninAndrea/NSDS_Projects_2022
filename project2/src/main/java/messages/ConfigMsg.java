@@ -1,20 +1,20 @@
 package messages;
 
 public class ConfigMsg {
-	private int roomId;
+	private int id;
 
-	public ConfigMsg(int roomId) {
-		this.roomId = roomId;
+	public ConfigMsg(int id) {
+		this.id = id;
 	}
 	
 	public ConfigMsg() {
 	}
 	
-	public int getRoomId() {
-		return roomId;
+	public int getId() {
+		return id;
 	}
 
-	public void setRoomId(int roomId) {
-		this.roomId = roomId;
+	public void setId(int id) {
+		this.id = id;
 	}
 }
