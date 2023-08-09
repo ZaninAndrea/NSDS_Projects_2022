@@ -23,14 +23,9 @@ public class ClientActor extends AbstractActor {
 	@Override
 	public Receive createReceive() {
 		return receiveBuilder().match(ConfigMsg.class, this::onConfigMessage)
-				.match(GenerateMsg.class, this::onGenerateMessage)
 				.match(InitMsg.class, this::onInitMessage)
 				.match(UpdateMsg.class, this::onUpdateMessage)
 				.match(UpdateApplianceMsg.class, this::onUpdateAppliance).build();
-	}
-	
-	void onGenerateMessage(GenerateMsg msg) {
-		
 	}
 	
 	void onInitMessage(InitMsg msg) {

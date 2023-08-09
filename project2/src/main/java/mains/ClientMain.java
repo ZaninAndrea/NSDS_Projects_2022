@@ -21,9 +21,6 @@ public class ClientMain {
 		
 		client.tell(new ConfigMsg(), ActorRef.noSender());
 		
-		Thread.sleep(2000);
-		client.tell(new GenerateMsg(), ActorRef.noSender());
-		
 		String s = (new BufferedReader(new InputStreamReader(System.in))).readLine();
 		sys.terminate();
 		
