@@ -1,0 +1,5 @@
+package objects;
+
+public enum MessageType {
+	HEAT_SENSOR, LIGHT_SENSOR, MANUALLY_SET_HEATER, SET_TARGET_TEMPERATURE, APPLIANCE
+}
