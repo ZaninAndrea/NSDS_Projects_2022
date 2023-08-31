@@ -17,11 +17,13 @@ import org.json.JSONObject;
 
 public class BasicProducer {
     private static final String defaultTopic = "topicCovid";
-
-    private static final int waitBetweenMsgs = 5 * 1000; //seconds * 1000
+    private static final int waitBetweenMsgs = 5 * 1000;
     private static final boolean waitAck = false;
-
     private static final String serverAddr = "localhost:9092";
+
+    private static final String filePath = "./files/covid/WHO-COVID-19-global-data-ordered.csv";
+    private static final int countryCount = 237; 
+    private static final int dayCount = 1315;
 
     public static void main(String[] args) {
         // If there are no arguments, publish to the default topic
@@ -35,8 +37,9 @@ public class BasicProducer {
 
         final KafkaProducer<String, String> producer = new KafkaProducer<>(props);
 
+        // Parse the csv source file
         List<List<String>> records = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader("./files/covid/WHO-COVID-19-global-data-ordered.csv"))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] values = line.split(",");
@@ -46,13 +49,13 @@ public class BasicProducer {
             e.printStackTrace();
         }
 
-        final int n = 237; //number of country
 
-        for (int i=0;i<1315;i++) { //1315 i = day
-            
-            for(int j=0; j<n;j++) {  //send all the row of current day
+        // Send all the records to the kafka topic
+        for (int i=0;i<dayCount;i++) {
+            for(int j=0; j<countryCount;j++) {  //send all the row of current day
                 final String topic = defaultTopic;
-                final List<String> nowReading = records.get(i*n + j);
+                final List<String> nowReading = records.get(i*countryCount + j);
+
                 // Creating a JSON object with the actual row 
                 JSONObject newRow = new JSONObject();
                 newRow.put("dayCount", Integer.valueOf(nowReading.get(0)));
@@ -65,9 +68,7 @@ public class BasicProducer {
                 newRow.put("newDeath", Integer.valueOf(nowReading.get(7)));
                 newRow.put("cumulativeDeath", Integer.valueOf(nowReading.get(8)));
 
-                System.out.println(
-                        newRow
-                );
+                System.out.println(newRow);
 
                 final ProducerRecord<String, String> record = new ProducerRecord<String, String>(topic, newRow.toString());
                 final Future<RecordMetadata> future = producer.send(record);

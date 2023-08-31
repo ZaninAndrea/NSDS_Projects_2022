@@ -60,8 +60,6 @@ public class TopTen {
             .option("subscribe", "topicCovid")
             .option("startingOffsets", "earliest")
             .load();    
-        
-        // input_df.printSchema();
 
         // Transform to Output DataFrame
         final Dataset<Row> value_df = input_df.select(col("timestamp"),from_json(col("value").cast("string"),mySchema).alias("value"));

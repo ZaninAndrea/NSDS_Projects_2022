@@ -60,16 +60,12 @@ public class Covid {
             .option("subscribe", "topicCovid")
             .option("startingOffsets", "earliest")
             .load();    
-        
-        //input_df.printSchema();
 
         // Transform to Output DataFrame
         final Dataset<Row> value_df = input_df.select(col("timestamp"),from_json(col("value").cast("string"),mySchema).alias("value"));
-        //value_df.printSchema();
 
         final Dataset<Row> exploded_df = value_df.selectExpr("timestamp","value.dayCount", "value.dateReported","value.countryCode","value.countryName","value.countryArea",
             "value.newCases","value.cumulativeCases","value.newDeaths","value.cumulativeDeaths");
-        //exploded_df.printSchema();
 
         exploded_df.withWatermark("timestamp", "1 hour");
         final Dataset<Row> aggregated_df = exploded_df
@@ -92,7 +88,6 @@ public class Covid {
         final StreamingQuery query = aggregated_df
             .sort(desc("Date"), col("countryName"))
             .writeStream()
-            //.trigger(Trigger.ProcessingTime("1 seconds"))
             .format("console")
             .outputMode("complete")
             .start();
