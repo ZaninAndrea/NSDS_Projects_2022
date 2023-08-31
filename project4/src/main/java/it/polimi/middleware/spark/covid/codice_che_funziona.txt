@@ -1,0 +1,31 @@
+// Schema del Database
+        final List<StructField> mySchemaFields = new ArrayList<>();
+        mySchemaFields.add(DataTypes.createStructField("date_reported", DataTypes.DateType, true));
+        mySchemaFields.add(DataTypes.createStructField("country_code", DataTypes.StringType, true));
+        mySchemaFields.add(DataTypes.createStructField("country", DataTypes.StringType, true));
+        mySchemaFields.add(DataTypes.createStructField("WHO_region", DataTypes.StringType, true));
+        mySchemaFields.add(DataTypes.createStructField("new_cases", DataTypes.IntegerType, true));
+        mySchemaFields.add(DataTypes.createStructField("cumulative_cases", DataTypes.IntegerType, true));
+        mySchemaFields.add(DataTypes.createStructField("new_deaths", DataTypes.IntegerType, true));
+        mySchemaFields.add(DataTypes.createStructField("cumulative_deaths", DataTypes.IntegerType, true));
+        final StructType mySchema = DataTypes.createStructType(mySchemaFields);
+        // -------------------
+        // final Dataset<Row> covid = spark
+        //         .read()
+        //         .option("header", "true")
+        //         .option("delimiter", ",")
+        //         .schema(mySchema)
+        //         .csv(filePath + "files/covid/WHO-COVID-19-global-data.csv");
+        
+
+        // Prova
+        // final Dataset<Row> covidNation = covid
+        //         .groupBy("country_code")
+        //         .sum("new_cases")
+        //         .select("country_code", "sum(new_cases)");
+        // covidNation.show();
+
+        // covid.select("date","country", "new_cases")
+        //         .where("country_code == 'IT'")
+        //         .show(false);
+        // spark.close();
