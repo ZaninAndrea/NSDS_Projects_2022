@@ -1,0 +1,435 @@
+[
+    {
+        "id": "6abf67d5f95570af",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "e06d900172ac5ec7",
+        "type": "mqtt in",
+        "z": "6abf67d5f95570af",
+        "name": "",
+        "topic": "iot/sensor",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "4a0d4a47dfaf3f26",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 80,
+        "y": 240,
+        "wires": [
+            [
+                "0aca16c15c78d4a5"
+            ]
+        ]
+    },
+    {
+        "id": "c642004bc5d2910d",
+        "type": "json",
+        "z": "6abf67d5f95570af",
+        "name": "Convert to JS object",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 480,
+        "y": 240,
+        "wires": [
+            [
+                "0a17be5850305f71"
+            ]
+        ]
+    },
+    {
+        "id": "0a17be5850305f71",
+        "type": "function",
+        "z": "6abf67d5f95570af",
+        "name": "Retrive month and day",
+        "func": "let month2string = flow.get(\"month2string\")\nlet date = new Date(msg.payload.timestamp * 1000)\nmsg.payload.year = date.getFullYear()\nmsg.payload.month = String(date.getFullYear()) +\n                    \"_\" +\n                    month2string(date.getMonth());\nmsg.payload.day = date.getDate()\n\nmsg.payload.path = \"/tmp/iot/\" + msg.payload.month\n\nlet month = msg.payload.month;\nmsg.payload.best = flow.get(month)\n\nif (!msg.payload.best) {\n    let month_inizialization = flow.get(\"month_inizialization\");\n    flow.set(\n        msg.payload.month,\n        month_inizialization(month)\n    )\n    msg.payload.best = flow.get(month)\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 720,
+        "y": 240,
+        "wires": [
+            [
+                "e282b213a5980681"
+            ]
+        ]
+    },
+    {
+        "id": "2fbdb49b9cf2bb26",
+        "type": "file",
+        "z": "6abf67d5f95570af",
+        "name": "Overwrite best",
+        "filename": "path",
+        "filenameType": "msg",
+        "appendNewline": true,
+        "createDir": true,
+        "overwriteFile": "true",
+        "encoding": "none",
+        "x": 940,
+        "y": 360,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "67b1d59556b83c57",
+        "type": "function",
+        "z": "6abf67d5f95570af",
+        "name": "getMonth",
+        "func": "let month2string = flow.get(\"month2string\")\nlet date = new Date(msg.payload)\nlet month = String(date.getFullYear()) +\n            \"_\" +\n            month2string(date.getMonth());\nlet path = \"/tmp/iot/\"\nmsg.payload = path + month\n\nlet month_inizialization = flow.get(\"month_inizialization\");\nflow.set(month,\n         month_inizialization(month)\n)\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "// Code added here will be run once\n// whenever the node is started.\n\nlet month2string = function(n) {\n    switch (n) {\n        case 0:\n            return \"January\";\n        case 1:\n            return \"February\";\n        case 2:\n            return \"March\";\n        case 3:\n            return \"April\";\n        case 4:\n            return \"May\";\n        case 5:\n            return \"June\";\n        case 6:\n            return \"July\";\n        case 7:\n            return \"August\";\n        case 8:\n            return \"September\";\n        case 9:\n            return \"October\";\n        case 10:\n            return \"Novembre\";\n        case 11:\n            return \"December\";\n        default:\n            return \"Ginepro\"; // il mese segreto \n    }\n}\n\nflow.set(\"month2string\", month2string);\n\n\n\n\nlet month_inizialization = function(month) {\n    let X = {}\n    X.month = month;\n    X.max_temp = {\"value\":0};\n    X.min_temp = {\"value\":100};\n    X.max_hum = { \"value\": 0 };\n    X.min_hum = { \"value\": 100 };\n    return X;\n}\n\nflow.set(\"month_inizialization\", month_inizialization);\n\n\nconsole.log(flow.get(\"2023_May\"))\nconsole.log(flow.get(\"2023_June\"))",
+        "finalize": "",
+        "libs": [],
+        "x": 320,
+        "y": 600,
+        "wires": [
+            [
+                "619c7647a0715281"
+            ]
+        ]
+    },
+    {
+        "id": "619c7647a0715281",
+        "type": "file in",
+        "z": "6abf67d5f95570af",
+        "name": "Read month actual best",
+        "filename": "payload",
+        "filenameType": "msg",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "none",
+        "allProps": false,
+        "x": 550,
+        "y": 600,
+        "wires": [
+            [
+                "ecd3992f28553e2c"
+            ]
+        ]
+    },
+    {
+        "id": "ab87ac2cd34ae59d",
+        "type": "inject",
+        "z": "6abf67d5f95570af",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 110,
+        "y": 600,
+        "wires": [
+            [
+                "67b1d59556b83c57"
+            ]
+        ]
+    },
+    {
+        "id": "d09ab6a660479c2a",
+        "type": "function",
+        "z": "6abf67d5f95570af",
+        "name": "Write on flow",
+        "func": "flow.set(msg.payload.month, msg.payload)\nflow.set(\"ready\",true);\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "// Code added here will be run once\n// whenever the node is started.\nflow.set(\"ready\", false);",
+        "finalize": "",
+        "libs": [],
+        "x": 950,
+        "y": 600,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "ecd3992f28553e2c",
+        "type": "json",
+        "z": "6abf67d5f95570af",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 770,
+        "y": 600,
+        "wires": [
+            [
+                "d09ab6a660479c2a"
+            ]
+        ]
+    },
+    {
+        "id": "d91ff09cf5c68aeb",
+        "type": "function",
+        "z": "6abf67d5f95570af",
+        "name": "update temperature",
+        "func": "let new_best = {\n    \"value\" : msg.payload.value , \n    \"day\" : msg.payload.day\n}\n\nlet thismonth = msg.payload.month\nlet best = msg.payload.best\n\nif (new_best.value >= best.max_temp.value)\n    msg.payload.best.max_temp = new_best;\nif (new_best.value <= best.min_temp.value)\n    msg.payload.best.min_temp = new_best;\n\n\nflow.set(thismonth, msg.payload.best)\n\nlet newmsg = {}\nnewmsg.payload = msg.payload.best\nnewmsg.path = msg.payload.path\n\nreturn newmsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 700,
+        "y": 340,
+        "wires": [
+            [
+                "2fbdb49b9cf2bb26"
+            ]
+        ]
+    },
+    {
+        "id": "e282b213a5980681",
+        "type": "switch",
+        "z": "6abf67d5f95570af",
+        "name": "",
+        "property": "payload.type",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "T",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "H",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 490,
+        "y": 360,
+        "wires": [
+            [
+                "d91ff09cf5c68aeb"
+            ],
+            [
+                "05b282719ba3dff9"
+            ]
+        ]
+    },
+    {
+        "id": "05b282719ba3dff9",
+        "type": "function",
+        "z": "6abf67d5f95570af",
+        "name": "update humidity",
+        "func": "let new_best = {\n    \"value\" : msg.payload.value , \n    \"day\" : msg.payload.day\n}\n\nlet thismonth = msg.payload.month\nlet best = msg.payload.best\n\nif (new_best.value >= best.max_hum.value)\n    msg.payload.best.max_hum = new_best;\nif (new_best.value <= best.min_hum.value)\n    msg.payload.best.min_hum = new_best;\n\nflow.set(thismonth, msg.payload.best)\n\nlet newmsg = {}\nnewmsg.payload = msg.payload.best\nnewmsg.path = msg.payload.path\n\nreturn newmsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 680,
+        "y": 380,
+        "wires": [
+            [
+                "2fbdb49b9cf2bb26"
+            ]
+        ]
+    },
+    {
+        "id": "0aca16c15c78d4a5",
+        "type": "switch",
+        "z": "6abf67d5f95570af",
+        "name": "",
+        "property": "ready",
+        "propertyType": "flow",
+        "rules": [
+            {
+                "t": "true"
+            },
+            {
+                "t": "false"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 250,
+        "y": 240,
+        "wires": [
+            [
+                "c642004bc5d2910d"
+            ],
+            [
+                "e1d49b758c679140"
+            ]
+        ]
+    },
+    {
+        "id": "e1d49b758c679140",
+        "type": "delay",
+        "z": "6abf67d5f95570af",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "2",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 260,
+        "y": 320,
+        "wires": [
+            [
+                "0aca16c15c78d4a5"
+            ]
+        ]
+    },
+    {
+        "id": "acf7c577c961fe4e",
+        "type": "inject",
+        "z": "6abf67d5f95570af",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "10",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 110,
+        "y": 800,
+        "wires": [
+            [
+                "2219f321239c2a9f"
+            ]
+        ]
+    },
+    {
+        "id": "2219f321239c2a9f",
+        "type": "function",
+        "z": "6abf67d5f95570af",
+        "name": "getMonth",
+        "func": "let month2string = flow.get(\"month2string\")\nlet date = new Date(msg.payload)\nlet month = String(date.getFullYear()) +\n            \"_\" +\n            month2string(date.getMonth());\nlet path = \"/tmp/iot/\"\nmsg.payload = path + month\n\nlet newmsg = {}\nnewmsg.payload = flow.get(month)\nnewmsg.topic = \"Log of \" + month\n\nreturn newmsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "// Code added here will be run once\n// whenever the node is started.\n\nlet month2string = function(n) {\n    switch (n) {\n        case 0:\n            return \"January\";\n        case 1:\n            return \"February\";\n        case 2:\n            return \"March\";\n        case 3:\n            return \"April\";\n        case 4:\n            return \"May\";\n        case 5:\n            return \"June\";\n        case 6:\n            return \"July\";\n        case 7:\n            return \"August\";\n        case 8:\n            return \"September\";\n        case 9:\n            return \"October\";\n        case 10:\n            return \"Novembre\";\n        case 11:\n            return \"December\";\n        default:\n            return \"Ginepro\"; // il mese segreto \n    }\n}\n\nflow.set(\"month2string\", month2string);\n\n\n\n\nlet month_inizialization = function(month) {\n    let X = {}\n    X.month = month;\n    X.max_temp = {\"value\":0};\n    X.min_temp = {\"value\":100};\n    X.max_hum = { \"value\": 0 };\n    X.min_hum = { \"value\": 100 };\n    return X;\n}\n\nflow.set(\"month_inizialization\", month_inizialization);\n\n\nconsole.log(flow.get(\"2023_May\"))\nconsole.log(flow.get(\"2023_June\"))",
+        "finalize": "",
+        "libs": [],
+        "x": 320,
+        "y": 800,
+        "wires": [
+            [
+                "f8cf6f4f8aa0e01e"
+            ]
+        ]
+    },
+    {
+        "id": "f8cf6f4f8aa0e01e",
+        "type": "e-mail",
+        "z": "6abf67d5f95570af",
+        "server": "smtps.aruba.it",
+        "port": "465",
+        "authtype": "BASIC",
+        "saslformat": true,
+        "token": "oauth2Response.access_token",
+        "secure": true,
+        "tls": false,
+        "name": "davide.remondina@mail.polimi.it",
+        "dname": "",
+        "x": 590,
+        "y": 800,
+        "wires": []
+    },
+    {
+        "id": "f73d321d24bdc824",
+        "type": "catch",
+        "z": "6abf67d5f95570af",
+        "name": "",
+        "scope": [
+            "619c7647a0715281"
+        ],
+        "uncaught": false,
+        "x": 490,
+        "y": 640,
+        "wires": [
+            [
+                "3b2ef52684832d8b"
+            ]
+        ]
+    },
+    {
+        "id": "3b2ef52684832d8b",
+        "type": "function",
+        "z": "6abf67d5f95570af",
+        "name": "initialize month",
+        "func": "flow.set(\"ready\", true);\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 680,
+        "y": 640,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "4a0d4a47dfaf3f26",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "mqtt.neslab.it",
+        "port": "3200",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    }
+]
