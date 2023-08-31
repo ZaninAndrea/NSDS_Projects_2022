@@ -13,8 +13,8 @@ First thing the Flow produces a timestamp of the current time from which the act
 
 The flow subscribes to the topic "iot/sensor" on the server mqtt.neslab.it:3200 and processes every message as follows:
 
-1. Wait 2 seconds to ensure that the log has been read from disk in case of reboot. In practice we have no guarantee on which one of the two parallel stream of instruction is executed first, but 2 seconds is a reasonable time to wait.
-2. It converts the object read from the MQTT connection into a JS object.
+1. Wait until the setup flow has run to ensure that the log has been read from disk in case of reboot.
+2. Convert the object read from the MQTT connection into a JS object.
 3. Extract from the timestamp included in the message the day and the month.
 4. A switch block checks which is the topic of the message. We worked using only humidity and temperature, but other type of measures can be easily added.
 5. If this is the first reading of the month, a new JS object called as the month + year is created with dummy maximum and minimum. This object is saved as a flow variable.
@@ -44,7 +44,7 @@ The program flow is the following:
                  temp.value, temp.timestamp);
     ```
 
-6. Between each publish the program wait 2 seconds, this has been made to make sure that the publish actually completes.
+6. Between each publish the program wait 2 seconds, this has been made to make sure that the publish actually completes before the data is discarded.
 7. The program restarts generating samples and reuses the same array as before to store them.
 
 # COOJA Simulation
