@@ -1,6 +1,8 @@
 .PHONY: start visualize
 
 start: simulation
+	rm -r snapshots
+	mkdir snapshots
 	mpirun -np 4 ./simulation
 
 visualize:

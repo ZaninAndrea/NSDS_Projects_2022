@@ -154,15 +154,10 @@ int main(int argc, char *argv[])
     params.INITIAL_INDIVIDUALS = 500;
     params.INITIAL_INFECTED = 50;
     params.COUNTRIES = {
-        // Country{0, params.WORLD_WIDTH, 0, params.WORLD_HEIGHT, "World"},
-        // Country{1000, 3000, 1000, 3000, "Italy"},
-        // Country{6000, 9000, 6000, 9000, "Germany"},
+        Country{0, params.WORLD_WIDTH, 0, params.WORLD_HEIGHT, "World"},
+        Country{1000, 3000, 1000, 3000, "Italy"},
+        Country{6000, 9000, 6000, 9000, "Germany"},
     };
-
-    for (int i = 0; i < 50000; i++)
-    {
-        params.COUNTRIES.push_back(Country{0, params.WORLD_WIDTH, 0, params.WORLD_HEIGHT, "World"});
-    }
 
     params.SAVE_SNAPSHOTS = true;
 
